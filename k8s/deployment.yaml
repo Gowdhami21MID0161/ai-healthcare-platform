@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: ai-healthcare
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: ai-healthcare
+
+  template:
+    metadata:
+      labels:
+        app: ai-healthcare
+
+    spec:
+      containers:
+      - name: ai-service
+
+        image: yourdockerhub/ai-healthcare:latest
+
+        ports:
+        - containerPort: 5004
