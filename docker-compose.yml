@@ -1,0 +1,85 @@
+services:
+  patient-service:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    command: ["sh", "-c", "npm ci && npm start"]
+    volumes:
+      - ./patient-service:/app
+      - patient-node-modules:/app/node_modules
+
+  doctor-service:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    command: ["sh", "-c", "npm ci && npm start"]
+    volumes:
+      - ./doctor-service:/app
+      - doctor-node-modules:/app/node_modules
+
+  appointment-service:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    command: ["sh", "-c", "npm ci && npm start"]
+    volumes:
+      - ./appointment-service:/app
+      - appointment-node-modules:/app/node_modules
+
+  notification-service:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    command: ["sh", "-c", "npm ci && node server.js"]
+    volumes:
+      - ./notification-service:/app
+      - notification-node-modules:/app/node_modules
+
+  ai-service:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    command: ["sh", "-c", "npm ci && npm start"]
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - ./ai-service:/app
+      - ai-node-modules:/app/node_modules
+
+  api-gateway:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    command: ["sh", "-c", "npm ci && npm start"]
+    environment:
+      PATIENT_SERVICE_URL: http://patient-service:5001
+      DOCTOR_SERVICE_URL: http://doctor-service:5002
+      APPOINTMENT_SERVICE_URL: http://appointment-service:5003
+      AI_SERVICE_URL: http://ai-service:5004
+    depends_on:
+      - patient-service
+      - doctor-service
+      - appointment-service
+      - ai-service
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./api-gateway:/app
+      - gateway-node-modules:/app/node_modules
+
+  frontend:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    command: ["sh", "-c", "npm ci && npm run dev -- --host 0.0.0.0"]
+    environment:
+      VITE_API_PROXY_TARGET: http://api-gateway:8080
+    depends_on:
+      - api-gateway
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+
+volumes:
+  patient-node-modules:
+  doctor-node-modules:
+  appointment-node-modules:
+  notification-node-modules:
+  ai-node-modules:
+  gateway-node-modules:
+  frontend-node-modules:
