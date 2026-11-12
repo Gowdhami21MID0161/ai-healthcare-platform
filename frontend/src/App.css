@@ -59,6 +59,10 @@
 
 .main-nav a:hover,
 .secondary-link:hover,
+.book-doctor-link:hover {
+  color: #128265;
+}
+
 .demo-label {
   display: inline-flex;
   align-items: center;
@@ -172,6 +176,10 @@
   color: #64502d;
 }
 
+.care-section {
+  scroll-margin-top: 20px;
+}
+
 .section-heading {
   display: flex;
   align-items: center;
@@ -191,9 +199,86 @@
   letter-spacing: -0.55px;
 }
 
-.appointment-count {
+.section-count,
+.appointment-count,
+.step-number {
   color: #879991;
   font-size: 12px;
+}
+
+.doctor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 17px;
+}
+
+.doctor-card {
+  display: flex;
+  min-height: 126px;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 19px 16px;
+  border: 1px solid #e8efec;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 7px 22px rgb(23 58 53 / 3%);
+}
+
+.doctor-avatar {
+  display: grid;
+  width: 43px;
+  height: 43px;
+  flex: 0 0 43px;
+  place-items: center;
+  border-radius: 14px;
+  background: #e4f1ff;
+  color: #467bb5;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.doctor-avatar-1 {
+  background: #e3f3ec;
+  color: #33836a;
+}
+
+.doctor-avatar-2 {
+  background: #f4eafa;
+  color: #9369a8;
+}
+
+.doctor-details {
+  min-width: 0;
+}
+
+.doctor-specialty {
+  margin: 0 0 4px;
+  color: #6b9787;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.doctor-details h3 {
+  margin: 0;
+  color: #284840;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.doctor-location {
+  margin: 5px 0 0;
+  color: #91a19b;
+  font-size: 11px;
+}
+
+.book-doctor-link {
+  margin: auto 0 0 auto;
+  color: #18866b;
+  font-size: 11px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .booking-layout {
@@ -216,6 +301,18 @@
 .appointments-card {
   padding: 23px;
   scroll-margin-top: 20px;
+}
+
+.step-number {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 11px;
+  background: #e7f4ee;
+  color: #31826a;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .section-description {
@@ -649,6 +746,14 @@
 
   .main-nav a {
     font-size: 11px;
+  }
+
+  .doctor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-card {
+    min-height: 102px;
   }
 
   .booking-layout {

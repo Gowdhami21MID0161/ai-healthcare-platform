@@ -24,7 +24,7 @@ async function getJson(url, options) {
   } catch (error) {
     if (error.name === "AbortError") throw error;
     throw new Error(
-      "Could not reach the API gateway. Start the backend services, then refresh.",
+      "Could not connect to the backend. Start the API gateway and services, then refresh.",
       { cause: error }
     );
   }
@@ -35,18 +35,17 @@ async function getJson(url, options) {
     data = responseText ? JSON.parse(responseText) : null;
   } catch {
     throw new Error(
-      `The API returned an invalid response (HTTP ${response.status}). Check that the gateway and services are running.`
+      `The backend returned an invalid response (HTTP ${response.status}). Check that the API gateway and services are running.`
     );
   }
+
   if (!response.ok) {
     throw new Error(
-      data?.error || `The API request failed (HTTP ${response.status}).`
+      data?.error || `The backend request failed (HTTP ${response.status}).`
     );
   }
   if (data === null) {
-    throw new Error(
-      "The API returned an empty response. Check that the gateway and services are running."
-    );
+    throw new Error("The backend returned an empty response. Please try again.");
   }
   return data;
 }
@@ -68,7 +67,6 @@ async function fetchCareData(signal) {
       ? appointmentResult.value
       : null;
   const errors = [];
-
   if (doctors === null) errors.push("Could not load doctors.");
   if (appointments === null) errors.push("Could not load appointments.");
 
@@ -100,6 +98,20 @@ function App() {
   const [chatError, setChatError] = useState("");
   const [isSending, setIsSending] = useState(false);
 
+  async function loadCareData(signal) {
+    setServiceError("");
+    try {
+      const data = await fetchCareData(signal);
+      if (data.doctors) setDoctors(data.doctors);
+      if (data.appointments) setAppointments(data.appointments);
+      setServiceError(data.error);
+    } catch (error) {
+      if (error.name !== "AbortError") setServiceError(error.message);
+    } finally {
+      if (!signal?.aborted) setIsLoading(false);
+    }
+  }
+
   useEffect(() => {
     const controller = new AbortController();
     fetchCareData(controller.signal)
@@ -118,19 +130,9 @@ function App() {
     return () => controller.abort();
   }, []);
 
-  async function refreshCareData() {
+  function refreshCareData() {
     setIsLoading(true);
-    setServiceError("");
-    try {
-      const data = await fetchCareData();
-      if (data.doctors) setDoctors(data.doctors);
-      if (data.appointments) setAppointments(data.appointments);
-      setServiceError(data.error);
-    } catch (error) {
-      setServiceError(error.message);
-    } finally {
-      setIsLoading(false);
-    }
+    loadCareData();
   }
 
   const selectedDoctor = doctors.find(
@@ -172,7 +174,7 @@ function App() {
         time: "",
       });
       setIsLoading(true);
-      await refreshCareData();
+      await loadCareData();
     } catch (error) {
       setBookingError(error.message);
     } finally {
@@ -233,7 +235,7 @@ function App() {
           <span>Careline<span className="brand-dot">.</span></span>
         </a>
         <nav className="main-nav" aria-label="Main navigation">
-          <a href="#book-appointment">Book a visit</a>
+          <a href="#doctors">Find a doctor</a>
           <a href="#appointments">Appointments</a>
           <a href="#assistant">Ask the assistant</a>
         </nav>
@@ -244,8 +246,8 @@ function App() {
         <p className="eyebrow">WELCOME TO CARELINE</p>
         <h1>Care starts with a clear next step.</h1>
         <p className="welcome-copy">
-          Book a visit, see your upcoming appointments, or ask the assistant a
-          general health question.
+          Browse a sample care team, book a demo appointment, keep track of your
+          bookings, or ask the AI assistant a general health question.
         </p>
         <div className="welcome-actions">
           <a className="primary-link" href="#book-appointment">Book an appointment</a>
@@ -253,14 +255,50 @@ function App() {
         </div>
       </section>
 
-      <aside className="demo-notice" role="note">
-        <span className="notice-icon" aria-hidden="true">i</span>
-        <p>
-          <strong>This is a demo, not a real clinic.</strong> Doctors and time
-          slots below are examples; bookings are saved locally and are not sent
-          to a healthcare provider. Please do not enter real patient information.
-        </p>
-      </aside>
+      <section className="care-section" id="doctors" aria-labelledby="doctors-title">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">MEET THE CARE TEAM</p>
+            <h2 id="doctors-title">Choose a doctor</h2>
+          </div>
+          <div className="section-controls">
+            <span className="section-count">
+              {isLoading ? "Loading..." : `${doctors.length} sample providers`}
+            </span>
+            <button type="button" className="refresh-button" onClick={refreshCareData} disabled={isLoading}>
+              Refresh
+            </button>
+          </div>
+        </div>
+        {serviceError && <p className="service-error" role="alert">{serviceError}</p>}
+        {!isLoading && !serviceError && doctors.length === 0 && (
+          <p className="empty-state">No doctors are listed right now. Please try refreshing.</p>
+        )}
+        <div className="doctor-grid">
+          {doctors.map((doctor, index) => (
+            <article className="doctor-card" key={doctor.id}>
+              <div className={`doctor-avatar doctor-avatar-${index % 3}`} aria-hidden="true">
+                {doctor.name.split(" ").filter((part) => part.endsWith(".") || /^[A-Z]/.test(part))
+                  .slice(0, 2).map((part) => part.replace(".", "")[0]).join("")}
+              </div>
+              <div className="doctor-details">
+                <p className="doctor-specialty">{doctor.specialty}</p>
+                <h3>{doctor.name}</h3>
+                <p className="doctor-location">{doctor.location || "Demo clinic"}</p>
+              </div>
+              <a
+                className="book-doctor-link"
+                href="#book-appointment"
+                onClick={() =>
+                  setBooking((current) => ({ ...current, doctorId: String(doctor.id) }))
+                }
+              >
+                Choose <span aria-hidden="true">→</span>
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <div className="booking-layout">
         <section className="booking-card" id="book-appointment" aria-labelledby="booking-title">
@@ -269,22 +307,12 @@ function App() {
               <p className="eyebrow">STEP 1 · REQUEST A VISIT</p>
               <h2 id="booking-title">Book an appointment</h2>
             </div>
-            <button
-              type="button"
-              className="refresh-button"
-              onClick={refreshCareData}
-              disabled={isLoading}
-            >
-              {isLoading ? "Loading..." : "Refresh"}
-            </button>
+            <span className="step-number">01</span>
           </div>
           <p className="section-description">
             Choose a provider and a demo time. Your booking will appear in the
             appointments list.
           </p>
-          {serviceError && (
-            <p className="form-message form-error" role="alert">{serviceError}</p>
-          )}
           <form className="booking-form" onSubmit={submitAppointment}>
             <label>
               Your name
@@ -305,7 +333,6 @@ function App() {
               Doctor
               <select
                 value={booking.doctorId}
-                disabled={isLoading || doctors.length === 0}
                 onChange={(event) =>
                   setBooking((current) => ({
                     ...current,
@@ -366,11 +393,7 @@ function App() {
             </div>
             {bookingError && <p className="form-message form-error" role="alert">{bookingError}</p>}
             {bookingNotice && <p className="form-message form-success" role="status">{bookingNotice}</p>}
-            <button
-              className="submit-button"
-              type="submit"
-              disabled={isBooking || isLoading || doctors.length === 0}
-            >
+            <button className="submit-button" type="submit" disabled={isBooking || isLoading}>
               {isBooking ? "Booking..." : "Confirm demo appointment"}
             </button>
           </form>
@@ -393,7 +416,7 @@ function App() {
             <p className="empty-state">Loading your appointments...</p>
           ) : appointments.length === 0 ? (
             <div className="empty-appointments">
-              <span className="empty-calendar" aria-hidden="true">+</span>
+              <span className="empty-calendar" aria-hidden="true">□</span>
               <h3>No appointments yet</h3>
               <p>Once you book a visit, you’ll see the details here.</p>
               <a href="#book-appointment">Book your first appointment <span aria-hidden="true">→</span></a>
